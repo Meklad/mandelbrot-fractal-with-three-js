@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Mandelbrot Fractal with Three.js</title>
+    <style>
+        body { margin: 0; }
+        canvas { display: block; }
+    </style>
+</head>
+<body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Fragment shader code
+        const fragmentShader = `
+        precision highp float;
+        uniform float zoom;
+        uniform vec2 center;
+        uniform vec2 resolution;
+
+        void main() {
+            vec2 z, c;
+            // Adjust coordinates
+            vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / zoom + center;
+            c = uv;
+            z = uv;
+            int iter = 300;
+            int i;
+            for(i = 0; i < iter; i++) {
+                float x = (z.x * z.x - z.y * z.y) + c.x;
+                float y = (2.0 * z.x * z.y) + c.y;
+                if((x * x + y * y) > 4.0) break;
+                z.x = x;
+                z.y = y;
+            }
+            float color = float(i) / float(iter);
+            gl_FragColor = vec4(vec3(color), 1.0);
+        }
+        `;
+
+        var scene = new THREE.Scene();
+        var camera = new THREE.Camera();
+        camera.position.z = 1;
+
+        var renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        var geometry = new THREE.PlaneGeometry(2, 2);
+        var material = new THREE.ShaderMaterial({
+            fragmentShader: fragmentShader,
+            uniforms: {
+                zoom: { value: 400.0 },
+                center: { value: new THREE.Vector2(-0.5, 0.0) },
+                resolution: { value: new THREE.Vector2(window.innerWidth, window.innerHeight) }
+            }
+        });
+        var mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+        window.addEventListener('resize', function() {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            material.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+        });
+
+        var zoomLevel = 400.0;
+        var center = new THREE.Vector2(-0.5, 0.0);
+
+        window.addEventListener('wheel', function(e) {
+            zoomLevel *= e.deltaY > 0 ? 1.1 : 0.9;
+            material.uniforms.zoom.value = zoomLevel;
+        });
+
+        window.addEventListener('mousemove', function(e) {
+            if (e.buttons === 1) { // mouse is pressed
+                center.x -= e.movementX / zoomLevel;
+                center.y += e.movementY / zoomLevel;
+                material.uniforms.center.value = center;
+            }
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

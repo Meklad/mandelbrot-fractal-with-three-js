@@ -20,22 +20,25 @@
 
         void main() {
             vec2 z, c;
-            // Adjust coordinates
             vec2 uv = (gl_FragCoord.xy - 0.5 * resolution.xy) / zoom + center;
             c = uv;
             z = uv;
-            int iter = 300;
+            int iter = 1000;
             int i;
-            for(i = 0; i < iter; i++) {
+            for (i = 0; i < iter; i++) {
                 float x = (z.x * z.x - z.y * z.y) + c.x;
                 float y = (2.0 * z.x * z.y) + c.y;
-                if((x * x + y * y) > 4.0) break;
+                if ((x * x + y * y) > 4.0) break;
                 z.x = x;
                 z.y = y;
             }
-            float color = float(i) / float(iter);
-            gl_FragColor = vec4(vec3(color), 1.0);
+            float colorScale = float(i) / float(iter);
+            float r = 0.5 + 0.5 * sin(6.28318 * colorScale + 0.0); // Red channel phase shift by 0
+            float g = 0.5 + 0.5 * sin(6.28318 * colorScale + 2.09439); // Green channel phase shift by 2pi/3
+            float b = 0.5 + 0.5 * sin(6.28318 * colorScale + 4.18879); // Blue channel phase shift by 4pi/3
+            gl_FragColor = vec4(r, g, b, 1.0);
         }
+        
         `;
 
         var scene = new THREE.Scene();
@@ -67,8 +70,11 @@
         var center = new THREE.Vector2(-0.5, 0.0);
 
         window.addEventListener('wheel', function(e) {
-            zoomLevel *= e.deltaY > 0 ? 1.1 : 0.9;
+            zoomLevel *= e.deltaY > 0 ? 1.15 : 0.85;
             material.uniforms.zoom.value = zoomLevel;
+            // Adjust iterations dynamically
+            const newIter = Math.min(300 + Math.floor(zoomLevel - 400) / 50, 1000);
+            material.uniforms.iter.value = newIter; // Ensure you have declared 'iter' as a uniform
         });
 
         window.addEventListener('mousemove', function(e) {
